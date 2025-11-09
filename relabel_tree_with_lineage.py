@@ -265,6 +265,107 @@ def relabel_newick_leaves(newick_text: str, mapping: Dict[str, str]) -> str:
     return "".join(out_chars)
 
 
+def relabel_newick_leaves_with_records(newick_text: str, mapping: Dict[str, str]) -> Tuple[str, List[Dict[str, str]]]:
+    """
+    Relabel leaf names in a Newick string and collect per-leaf reporting records.
+
+    This function performs the same tokenization and replacement as
+    `relabel_newick_leaves`, but additionally collects a record for each leaf
+    containing:
+    - original leaf node label
+    - whether the original leaf node label has mnemonic (yes/no)
+    - current leaf node label (after potential relabeling)
+    - lineage information in the current leaf node label (mapping value used)
+
+    Args:
+        newick_text: Original Newick content as a single-line string.
+        mapping: Dict of mnemonic -> lineage label.
+
+    Returns:
+        A tuple of (modified Newick string, list of records for TSV reporting).
+    """
+    out_chars: List[str] = []
+    i = 0
+    n = len(newick_text)
+    expecting_label = False
+    records: List[Dict[str, str]] = []
+
+    # Precompute keys sorted by length (longest first) to avoid partial matches
+    keys_sorted = sorted(mapping.keys(), key=len, reverse=True)
+
+    while i < n:
+        ch = newick_text[i]
+        out_chars.append(ch)
+
+        if ch == '(' or ch == ',':
+            expecting_label = True
+            i += 1
+            if i < n and newick_text[i] in '(),':
+                expecting_label = False
+            else:
+                start = i
+                while i < n and newick_text[i] not in ':,)':
+                    i += 1
+                token = newick_text[start:i]
+
+                # Determine if token includes any mnemonic and perform replacement
+                has_mnemonic = False
+                used_lineage = ""
+                replaced = token
+                for key in keys_sorted:
+                    if key and key in token:
+                        has_mnemonic = True
+                        # Replace mnemonic with lineage label
+                        replaced = token.replace(key, mapping.get(key, key))
+                        used_lineage = mapping.get(key, "")
+                        break
+
+                out_chars.append(replaced)
+
+                # Collect reporting record
+                records.append({
+                    "original leaf node label": token,
+                    "whether the original leaf node label has mnemonic": "yes" if has_mnemonic else "no",
+                    "current leaf node label": replaced,
+                    "lineage information in the current leaf node label": used_lineage,
+                })
+
+                expecting_label = False
+                continue
+        else:
+            expecting_label = False
+            i += 1
+
+    return "".join(out_chars), records
+
+
+def write_report_tsv(report_path: Path, records: List[Dict[str, str]]) -> None:
+    """
+    Write a TSV report of leaf relabeling.
+
+    Columns written:
+    - original leaf node label
+    - whether the original leaf node label has mnemonic
+    - current leaf node label
+    - lineage information in the current leaf node label
+
+    Args:
+        report_path: Path to write the TSV file.
+        records: List of record dicts as produced by relabel_newick_leaves_with_records.
+    """
+    headers = [
+        "original leaf node label",
+        "whether the original leaf node label has mnemonic",
+        "current leaf node label",
+        "lineage information in the current leaf node label",
+    ]
+    lines = ["\t".join(headers)]
+    for r in records:
+        row = [r.get(h, "") for h in headers]
+        lines.append("\t".join(row))
+    report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def main() -> None:
     """
     Command-line interface to relabel Newick leaves using lineage mapping from TSV.
@@ -284,6 +385,15 @@ def main() -> None:
         "--output-tree",
         required=True,
         help="Path to write the relabeled Newick tree",
+    )
+    parser.add_argument(
+        "--report-tsv",
+        default="",
+        help=(
+            "Optional: path to write TSV report listing per-leaf original/current labels "
+            "and lineage information. If omitted, a default path derived from --output-tree "
+            "will be used (<output_tree_stem>.relabel_report.tsv)."
+        ),
     )
     parser.add_argument(
         "--tsv",
@@ -339,12 +449,40 @@ def main() -> None:
         print(f"Error: Input tree file not found: {input_tree}")
         sys.exit(1)
 
-    # Relabel leaves
-    relabeled = relabel_newick_leaves(newick_text, mapping)
+    # Relabel leaves and collect per-leaf records
+    relabeled, records = relabel_newick_leaves_with_records(newick_text, mapping)
 
-    # Write output
+    # Compute summary statistics
+    total_leaves = len(records)
+    with_mnemonic = sum(1 for r in records if r["whether the original leaf node label has mnemonic"] == "yes")
+    without_mnemonic = total_leaves - with_mnemonic
+    successfully_relabeled = sum(
+        1 for r in records
+        if r["whether the original leaf node label has mnemonic"] == "yes"
+        and r["original leaf node label"] != r["current leaf node label"]
+        and r["lineage information in the current leaf node label"] != ""
+    )
+    not_successfully_relabeled = with_mnemonic - successfully_relabeled
+
+    # Determine report TSV path and write report
+    if args.report_tsv and args.report_tsv.strip():
+        report_path = Path(args.report_tsv)
+    else:
+        report_path = output_tree.parent / f"{output_tree.stem}.relabel_report.tsv"
+
+    write_report_tsv(report_path, records)
+
+    # Write output tree
     output_tree.write_text(relabeled + ("\n" if not relabeled.endswith("\n") else ""), encoding="utf-8")
-    print(f"Relabeled tree written to: {output_tree}")
+
+    # Print summary to command line
+    print("Relabeling summary:")
+    print(f"- Total leaf nodes: {total_leaves}")
+    print(f"- Leaf nodes without mnemonic: {without_mnemonic}")
+    print(f"- Leaf nodes with mnemonic: {with_mnemonic}")
+    print(f"  - Successfully relabeled with lineage: {successfully_relabeled}")
+    print(f"  - Not successfully relabeled: {not_successfully_relabeled}")
+    print(f"TSV report written to: {report_path}")
 
 
 if __name__ == "__main__":
