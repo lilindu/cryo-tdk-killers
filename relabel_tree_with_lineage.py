@@ -130,7 +130,7 @@ def format_lineage_label(lineage: str, organism: str, start_rank: Optional[str] 
     """
     Convert a taxonomic lineage string and organism to a formatted label.
 
-    - Splits lineage by semicolons (or commas if present).
+    - Splits lineage by semicolons or commas.
     - Starts from the specified `start_rank` (case-insensitive), if found.
     - Sanitizes each rank and joins with underscores.
     - Appends the species epithet token at the end if available.
@@ -143,8 +143,8 @@ def format_lineage_label(lineage: str, organism: str, start_rank: Optional[str] 
     Returns:
         Formatted label string.
     """
-    # Split lineage by common delimiters
-    ranks = [r.strip() for r in re.split(r"[;]\s*", lineage) if r.strip()]
+    # Split lineage by common delimiters (semicolon or comma)
+    ranks = [r.strip() for r in re.split(r"[;,]\s*", lineage) if r.strip()]
     if not ranks:
         return ""
 
@@ -374,7 +374,8 @@ def main() -> None:
         description=(
             "Relabel Newick leaves by replacing Taxon mnemonic codes with "
             "formatted lineage labels derived from a TSV file."
-        )
+        ),
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--input-tree",
@@ -397,8 +398,11 @@ def main() -> None:
     )
     parser.add_argument(
         "--tsv",
-        default=str(Path("/Users/lilindu/Documents/Du_Lab_papers_grants/cryo-tdk-killers/fungal_ref_proteomes_with_interpro.tsv")),
-        help="Path to TSV file containing Taxon mnemonic, Taxonomic lineage, and Organism columns",
+        default="fungal_ref_proteomes_with_interpro.tsv",
+        help=(
+            "Path to TSV file containing Taxon mnemonic, Taxonomic lineage, and Organism columns. "
+            "If not provided, defaults to 'fungal_ref_proteomes_with_interpro.tsv' in the current working directory."
+        ),
     )
     parser.add_argument(
         "--mnemonic-column",
