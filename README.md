@@ -28,6 +28,3 @@ python taxonomy_tree.py fungal_ref_proteomes_with_interpro.tsv taxonomy_tree_out
 - `add_interpro_counts.py`: UniProtKB counting (uses `x-total-results`)
 - `taxonomy_tree.py`: Hierarchical taxonomy rendering for IPR013902 distribution
 - `taxonomy_tree_output.txt`: Final tree used in the paper
-
-## Results
-- The taxonomy tree output is available in `taxonomy_tree_output.txt` on the feature branch above.
