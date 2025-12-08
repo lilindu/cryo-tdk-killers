@@ -2,9 +2,6 @@
 
 This repository contains scripts and outputs for enumerating the distribution of InterPro entry `IPR013902`-annotated proteins across fungal UniProtKB reference proteomes and rendering a hierarchical taxonomy tree for reporting.
 
-- Branch with finalized artifacts for the paper: https://github.com/lilindu/cryo-tdk-killers/tree/feature/document-uniprot-ipr013902-methods
-- Detailed methods: `docs/METHODS.md`
-
 ## Data Sources
 - UniProtKB release: `2025_04`
 - Proteomes stream endpoint: `https://rest.uniprot.org/proteomes/stream`
