@@ -1,4 +1,4 @@
-# Cryo Tdk Killers: UniProt IPR013902 Analysis
+# IPR013902 Analysis
 
 This repository contains scripts and outputs for enumerating the distribution of InterPro entry `IPR013902`-annotated proteins across fungal UniProtKB reference proteomes and rendering a hierarchical taxonomy tree for reporting.
 
