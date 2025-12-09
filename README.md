@@ -2,6 +2,8 @@
 
 This repository contains scripts and outputs for enumerating the distribution of InterPro entry `IPR013902`-annotated proteins across fungal UniProtKB reference proteomes and rendering a hierarchical taxonomy tree for reporting.
 
+For detailed methods, see [METHODS.md](METHODS.md).
+
 ## Data Sources
 - UniProtKB release: `2025_04`
 - Proteomes stream endpoint: `https://rest.uniprot.org/proteomes/stream`
@@ -22,7 +24,7 @@ python taxonomy_tree.py fungal_ref_proteomes_with_interpro.tsv taxonomy_tree_out
 ```
 
 ## Repository Structure
-- `docs/METHODS.md`: Detailed methods paragraph and exact commands
+- `METHODS.md`: Detailed methods paragraph and exact commands
 - `fungal_ref_proteomes.tsv`: Fungal reference proteomes list (downloaded 2025-10-18)
 - `fungal_ref_proteomes_with_interpro.tsv`: Fungal reference proteomes list with IPR013902 counts added
 - `add_interpro_counts.py`: Obtaining the counts of IPR013902-containing proteins to generate `fungal_ref_proteomes_with_interpro.tsv`
